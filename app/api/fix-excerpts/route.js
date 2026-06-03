@@ -9,10 +9,12 @@ export async function GET(request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const siteName = process.env.SITE_NAME || 'indiagrowth';
   const db = getSupabaseAdmin();
   const { data: posts } = await db
     .from('posts')
-    .select('id, title, excerpt, content, meta_description');
+    .select('id, title, excerpt, content, meta_description')
+    .eq('site_name', siteName);
 
   let fixed = 0;
   for (const post of posts || []) {
@@ -21,12 +23,11 @@ export async function GET(request) {
       if (typeof content === 'string') {
         try { content = JSON.parse(content); } catch {}
       }
-
       const excerpt =
         post.meta_description ||
         content?.hook?.substring(0, 160) ||
         content?.sections?.[0]?.body?.substring(0, 160) ||
-        `${post.title} - ${siteConfig.tagline}`;
+        `${post.title} — ${siteConfig.tagline}`;
 
       await db
         .from('posts')

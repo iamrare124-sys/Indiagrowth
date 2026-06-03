@@ -6,6 +6,7 @@ export const metadata = {
 };
 
 export default function AboutPage() {
+  const email = `hello@${siteConfig.domain}`;
   return (
     <>
       <div className="about-hero">
@@ -40,20 +41,15 @@ export default function AboutPage() {
 
       <div className="container">
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 0' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 20 }}>
-            Our Mission
-          </h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 20 }}>Our Mission</h2>
           <p style={{ fontSize: 17, color: 'var(--mid)', lineHeight: 1.75, marginBottom: 20 }}>
-            IndiaGrowth was founded to give Indian founders, investors, and startup enthusiasts a straight-talking source of truth about the ecosystem. We cover funding rounds, founder journeys, product launches, and the policy moves that shape India's entrepreneurial landscape.
+            {siteConfig.siteName} was founded to give Indian founders, investors, and startup enthusiasts a straight-talking source of truth about the ecosystem. We cover funding rounds, founder journeys, product launches, and the policy moves that shape India's entrepreneurial landscape.
           </p>
           <p style={{ fontSize: 17, color: 'var(--mid)', lineHeight: 1.75, marginBottom: 40 }}>
             No PR fluff. No paid placements. Just real analysis from someone who's spent years in the trenches of Indian venture capital.
           </p>
 
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 20 }}>
-            Meet the Author
-          </h2>
-
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 20 }}>Meet the Author</h2>
           <div className="about-author-card">
             <div className="author-big-avatar">{siteConfig.author.name.charAt(0)}</div>
             <div className="author-info">
@@ -65,9 +61,7 @@ export default function AboutPage() {
 
           <hr className="divider" />
 
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 20 }}>
-            What We Cover
-          </h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 20 }}>What We Cover</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {siteConfig.categories.map((cat) => (
               <div key={cat.slug} style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px 24px', borderLeft: '4px solid var(--red)' }}>
@@ -80,13 +74,10 @@ export default function AboutPage() {
           </div>
 
           <hr className="divider" />
-
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Get in Touch</h2>
             <p style={{ color: 'var(--gray)', marginBottom: 20 }}>Tips, corrections, or partnership enquiries?</p>
-            <a href="mailto:hello@indiagrowth.in" className="btn-red">
-              📧 hello@indiagrowth.in
-            </a>
+            <a href={`mailto:${email}`} className="btn-red">📧 {email}</a>
           </div>
         </div>
       </div>

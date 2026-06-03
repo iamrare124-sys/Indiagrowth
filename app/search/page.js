@@ -75,16 +75,10 @@ function SearchResults() {
           {results.length === 0 && (
             <div className="empty-state" style={{ padding: '40px 0' }}>
               <div className="empty-icon">🔍</div>
-              <p className="empty-desc">
-                Try different keywords or browse our categories below.
-              </p>
+              <p className="empty-desc">Try different keywords or browse categories below.</p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {['Funding News', 'Startup Stories', 'Product Launches', 'Founder Tips'].map((cat) => (
-                  <Link
-                    key={cat}
-                    href={`/category/${cat.toLowerCase().replace(/ /g, '-')}`}
-                    className="tag-pill"
-                  >
+                  <Link key={cat} href={`/category/${cat.toLowerCase().replace(/ /g, '-')}`} className="tag-pill">
                     {cat}
                   </Link>
                 ))}
@@ -95,9 +89,10 @@ function SearchResults() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {results.map((post) => (
               <article key={post.slug} className="list-card" style={{ padding: '20px 0' }}>
-                {post.image_url && (
+                {post.cover_image && (
                   <Link href={`/${post.slug}`} className="list-card-img" style={{ width: 120, height: 80 }}>
-                    <img src={post.image_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                    <img src={post.cover_image} alt={post.cover_image_alt || post.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                   </Link>
                 )}
                 <div className="list-card-body">
@@ -109,7 +104,7 @@ function SearchResults() {
                     {post.excerpt?.substring(0, 120)}...
                   </p>
                   <div className="list-card-date">
-                    {post.author} · {formatDate(post.created_at)}
+                    {post.author_name} · {formatDate(post.created_at)}
                   </div>
                 </div>
               </article>

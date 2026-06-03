@@ -8,24 +8,22 @@ export const revalidate = 3600;
 export async function generateMetadata({ params }) {
   const post = await getPostBySlug(params.slug);
   if (!post) return { title: 'Not Found' };
-
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://indiagrowth.in';
-
   return {
     title: post.meta_title || post.title,
     description: post.meta_description || post.excerpt,
     keywords: post.tags?.join(', '),
-    authors: [{ name: post.author || siteConfig.author.name }],
+    authors: [{ name: post.author_name || siteConfig.author.name }],
     openGraph: {
       title: post.meta_title || post.title,
       description: post.meta_description || post.excerpt,
       type: 'article',
-      publishedTime: post.created_at,
+      publishedTime: post.published_at || post.created_at,
       modifiedTime: post.updated_at,
-      authors: [post.author || siteConfig.author.name],
+      authors: [post.author_name || siteConfig.author.name],
       section: post.category,
       tags: post.tags,
-      images: post.image_url ? [{ url: post.image_url, width: 1200, height: 630 }] : [],
+      images: post.cover_image ? [{ url: post.cover_image, width: 1200, height: 630, alt: post.cover_image_alt || post.title }] : [],
       url: `${siteUrl}/${post.slug}`,
       siteName: siteConfig.siteName,
     },
@@ -33,7 +31,7 @@ export async function generateMetadata({ params }) {
       card: 'summary_large_image',
       title: post.meta_title || post.title,
       description: post.meta_description || post.excerpt,
-      images: post.image_url ? [post.image_url] : [],
+      images: post.cover_image ? [post.cover_image] : [],
     },
     alternates: { canonical: `${siteUrl}/${post.slug}` },
   };
@@ -42,9 +40,7 @@ export async function generateMetadata({ params }) {
 function formatDate(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    year: 'numeric', month: 'long', day: 'numeric',
   });
 }
 
@@ -53,15 +49,9 @@ function getCategoryLabel(slug) {
   return cat?.label || slug;
 }
 
-function readingTime(text) {
-  if (!text) return 3;
-  const words = text.split(/\s+/).length;
-  return Math.max(1, Math.ceil(words / 200));
-}
-
-function ArticleContent({ content, rawContent }) {
-  // Strategy 1: object with sections
-  if (content && typeof content === 'object' && content.sections?.length > 0) {
+function ArticleContent({ content }) {
+  // Strategy 1: object with sections array
+  if (content && typeof content === 'object' && Array.isArray(content.sections) && content.sections.length > 0) {
     return (
       <div className="article-content">
         {content.hook && (
@@ -80,22 +70,27 @@ function ArticleContent({ content, rawContent }) {
     );
   }
 
-  // Strategy 2: rawContent string
-  const raw = content?.rawContent || rawContent;
-  if (raw && typeof raw === 'string' && raw.length > 50) {
+  // Strategy 2: rawContent string fallback
+  const raw = content?.rawContent || (typeof content === 'string' ? content : '');
+  if (raw && raw.length > 50) {
     return (
       <div className="article-content">
         {raw.split(/\n\n+/).filter(Boolean).map((para, i) => {
-          if (para.startsWith('## ') || para.startsWith('# ')) {
-            return <h2 key={i} className="article-section">{para.replace(/^#+\s+/, '')}</h2>;
+          const trimmed = para.trim();
+          if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+            return (
+              <div key={i} className="article-section">
+                <h2>{trimmed.replace(/^#+\s+/, '')}</h2>
+              </div>
+            );
           }
-          return <p key={i} style={{ marginBottom: 18 }}>{para.trim()}</p>;
+          return <p key={i} style={{ marginBottom: 18 }}>{trimmed}</p>;
         })}
       </div>
     );
   }
 
-  // Strategy 3: plain text
+  // Strategy 3: plain text placeholder
   return (
     <div className="article-content">
       <p>Content unavailable. Please check back later.</p>
@@ -110,21 +105,18 @@ export default async function ArticlePage({ params }) {
   } catch {
     notFound();
   }
-
   if (!post) notFound();
 
-  // Parse content
+  // Parse content if string
   let content = post.content;
   if (typeof content === 'string') {
-    try {
-      content = JSON.parse(content);
-    } catch {}
+    try { content = JSON.parse(content); } catch {}
   }
 
-  const related = await getRelatedPosts(post.slug, post.category, 3).catch(() => []);
+  const related = await getRelatedPosts(post.category, post.slug, 3).catch(() => []);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://indiagrowth.in';
-  const articleText = content?.rawContent || content?.sections?.map((s) => s.body).join(' ') || '';
-  const readMins = readingTime(articleText);
+  const readMins = post.reading_time || 5;
+  const faqs = post.faqs || [];
 
   // JSON-LD schemas
   const newsArticleSchema = {
@@ -132,18 +124,11 @@ export default async function ArticlePage({ params }) {
     '@type': 'NewsArticle',
     headline: post.title,
     description: post.meta_description || post.excerpt,
-    image: post.image_url ? [post.image_url] : [],
-    datePublished: post.created_at,
+    image: post.cover_image ? [post.cover_image] : [],
+    datePublished: post.published_at || post.created_at,
     dateModified: post.updated_at || post.created_at,
-    author: {
-      '@type': 'Person',
-      name: post.author || siteConfig.author.name,
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: siteConfig.siteName,
-      url: siteUrl,
-    },
+    author: { '@type': 'Person', name: post.author_name || siteConfig.author.name },
+    publisher: { '@type': 'Organization', name: siteConfig.siteName, url: siteUrl },
     url: `${siteUrl}/${post.slug}`,
     mainEntityOfPage: `${siteUrl}/${post.slug}`,
   };
@@ -153,17 +138,11 @@ export default async function ArticlePage({ params }) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: siteUrl },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: getCategoryLabel(post.category),
-        item: `${siteUrl}/category/${post.category}`,
-      },
+      { '@type': 'ListItem', position: 2, name: getCategoryLabel(post.category), item: `${siteUrl}/category/${post.category}` },
       { '@type': 'ListItem', position: 3, name: post.title, item: `${siteUrl}/${post.slug}` },
     ],
   };
 
-  const faqs = post.faqs || [];
   const faqSchema = faqs.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -176,92 +155,70 @@ export default async function ArticlePage({ params }) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(newsArticleSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(newsArticleSchema) }} />
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       {faqSchema && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-        />
+        <script type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       )}
 
-      {/* Reading progress bar */}
       <div className="reading-progress" id="readingProgress" style={{ width: '0%' }} />
 
       <div className="container">
         <div className="article-layout">
-          {/* Article main */}
           <article>
-            {/* Breadcrumb */}
             <nav className="breadcrumb" aria-label="Breadcrumb">
               <Link href="/">Home</Link>
               <span className="breadcrumb-sep">›</span>
-              <Link href={`/category/${post.category}`}>
-                {getCategoryLabel(post.category)}
-              </Link>
+              <Link href={`/category/${post.category}`}>{getCategoryLabel(post.category)}</Link>
               <span className="breadcrumb-sep">›</span>
-              <span className="breadcrumb-current">
-                {post.title.substring(0, 40)}...
-              </span>
+              <span className="breadcrumb-current">{post.title.substring(0, 40)}...</span>
             </nav>
 
             <div className="article-header">
-              <div className="article-category-badge">
-                {getCategoryLabel(post.category)}
-              </div>
+              <div className="article-category-badge">{getCategoryLabel(post.category)}</div>
               <h1 className="article-title">{post.title}</h1>
-
               <div className="article-meta">
                 <div className="article-author">
                   <div className="author-avatar">
-                    {(post.author || siteConfig.author.name).charAt(0)}
+                    {(post.author_name || siteConfig.author.name).charAt(0)}
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {post.author || siteConfig.author.name}
+                      {post.author_name || siteConfig.author.name}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--gray)' }}>
-                      {siteConfig.author.title}
+                      {post.author_title || siteConfig.author.title}
                     </div>
                   </div>
                 </div>
                 <span style={{ color: 'var(--border)' }}>·</span>
-                <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
+                <time dateTime={post.published_at || post.created_at}>
+                  {formatDate(post.published_at || post.created_at)}
+                </time>
                 <span style={{ color: 'var(--border)' }}>·</span>
                 <span>{readMins} min read</span>
-
                 <div className="article-share">
-                  <button
-                    className="share-btn"
-                    id="copyLinkBtn"
-                    aria-label="Copy link"
-                  >
+                  <button className="share-btn" id="copyLinkBtn" aria-label="Copy link">
                     🔗 Copy Link
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Hero image */}
-            {post.image_url && (
+            {post.cover_image && (
               <div className="article-hero-img">
-                <img src={post.image_url} alt={post.title} />
+                <img src={post.cover_image} alt={post.cover_image_alt || post.title} />
                 {post.image_credit && (
                   <p className="img-credit">Photo: {post.image_credit}</p>
                 )}
               </div>
             )}
 
-            {/* Content */}
-            <ArticleContent content={content} rawContent={post.rawContent} />
+            <ArticleContent content={content} />
 
-            {/* Tags */}
             {post.tags && post.tags.length > 0 && (
               <div style={{ margin: '32px 0' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--gray)', marginBottom: 10 }}>
@@ -275,12 +232,9 @@ export default async function ArticlePage({ params }) {
               </div>
             )}
 
-            {/* FAQ */}
             {faqs.length > 0 && (
               <div className="faq-section">
-                <div className="faq-title">
-                  ❓ Frequently Asked Questions
-                </div>
+                <div className="faq-title">❓ Frequently Asked Questions</div>
                 {faqs.map((faq, i) => (
                   <div key={i} className="faq-item">
                     <div className="faq-q">{faq.question}</div>
@@ -290,7 +244,6 @@ export default async function ArticlePage({ params }) {
               </div>
             )}
 
-            {/* Author box */}
             <div className="about-author-card" style={{ margin: '32px 0' }}>
               <div className="author-big-avatar">
                 {siteConfig.author.name.charAt(0)}
@@ -302,7 +255,6 @@ export default async function ArticlePage({ params }) {
               </div>
             </div>
 
-            {/* Related posts */}
             {related.length > 0 && (
               <div className="related-section">
                 <div className="section-header">
@@ -313,11 +265,10 @@ export default async function ArticlePage({ params }) {
                     <article key={rp.slug} className="article-card">
                       <Link href={`/${rp.slug}`}>
                         <div className="card-img">
-                          {rp.image_url ? (
-                            <img src={rp.image_url} alt={rp.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
-                          ) : (
-                            <div style={{ width: '100%', height: '100%', background: 'var(--bg-soft)', position: 'absolute', top: 0, left: 0 }} />
-                          )}
+                          {rp.cover_image
+                            ? <img src={rp.cover_image} alt={rp.cover_image_alt || rp.title} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-soft)' }} />
+                          }
                         </div>
                       </Link>
                       <div className="card-body">
@@ -336,7 +287,6 @@ export default async function ArticlePage({ params }) {
             )}
           </article>
 
-          {/* Sidebar */}
           <aside className="sidebar">
             <div className="sidebar-widget">
               <div className="widget-title">Categories</div>
@@ -348,9 +298,7 @@ export default async function ArticlePage({ params }) {
                 ))}
               </div>
             </div>
-
             <div className="ad-slot">Advertisement</div>
-
             <div className="sidebar-widget">
               <div className="widget-title">About Author</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -368,31 +316,25 @@ export default async function ArticlePage({ params }) {
         </div>
       </div>
 
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            // Reading progress
-            var bar = document.getElementById('readingProgress');
-            if (bar) {
-              window.addEventListener('scroll', function() {
-                var h = document.documentElement;
-                var progress = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
-                bar.style.width = Math.min(100, progress) + '%';
-              });
-            }
-            // Copy link
-            var copyBtn = document.getElementById('copyLinkBtn');
-            if (copyBtn) {
-              copyBtn.addEventListener('click', function() {
-                navigator.clipboard.writeText(window.location.href).then(function() {
-                  copyBtn.textContent = '✓ Copied!';
-                  setTimeout(function() { copyBtn.textContent = '🔗 Copy Link'; }, 2000);
-                });
-              });
-            }
-          `,
-        }}
-      />
+      <script dangerouslySetInnerHTML={{ __html: `
+        var bar = document.getElementById('readingProgress');
+        if (bar) {
+          window.addEventListener('scroll', function() {
+            var h = document.documentElement;
+            var progress = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+            bar.style.width = Math.min(100, progress) + '%';
+          });
+        }
+        var copyBtn = document.getElementById('copyLinkBtn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(window.location.href).then(function() {
+              copyBtn.textContent = '✓ Copied!';
+              setTimeout(function() { copyBtn.textContent = '🔗 Copy Link'; }, 2000);
+            });
+          });
+        }
+      ` }} />
     </>
   );
 }

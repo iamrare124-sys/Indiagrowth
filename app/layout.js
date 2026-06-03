@@ -142,7 +142,7 @@ export default async function RootLayout({ children }) {
         <footer className="site-footer">
           <div className="footer-main">
             <div className="footer-brand-col">
-              <div className="footer-logo">IndiaGrowth</div>
+              <div className="footer-logo">{siteConfig.siteName}</div>
               <p className="footer-tagline">{siteConfig.tagline}</p>
               <div className="footer-social">
                 <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Twitter">𝕏</a>
@@ -167,7 +167,7 @@ export default async function RootLayout({ children }) {
               <ul className="footer-links">
                 <li><Link href="/about">About Us</Link></li>
                 <li><Link href="/search">Search</Link></li>
-                <li><a href="mailto:hello@indiagrowth.in">Contact</a></li>
+                <li><a href={`mailto:hello@${siteConfig.domain}`}>Contact</a></li>
               </ul>
             </div>
 
@@ -183,7 +183,7 @@ export default async function RootLayout({ children }) {
           </div>
 
           <div className="footer-bottom">
-            <span>© {new Date().getFullYear()} IndiaGrowth. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} {siteConfig.siteName}. All rights reserved.</span>
             <span>Made with ❤️ for Indian founders</span>
           </div>
         </footer>

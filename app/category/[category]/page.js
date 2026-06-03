@@ -29,9 +29,7 @@ export default async function CategoryPage({ params }) {
   return (
     <div className="container">
       <div className="category-header">
-        <div className="category-label">
-          <span>■</span> Category
-        </div>
+        <div className="category-label"><span>■</span> Category</div>
         <h1 className="category-name">{cat.label}</h1>
         <p className="category-count">
           {posts.length} {posts.length === 1 ? 'article' : 'articles'}
@@ -50,16 +48,12 @@ export default async function CategoryPage({ params }) {
             <article key={post.slug} className="article-card">
               <Link href={`/${post.slug}`}>
                 <div className="card-img">
-                  {post.image_url ? (
-                    <img
-                      src={post.image_url}
-                      alt={post.title}
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-soft)' }} />
-                  )}
+                  {post.cover_image
+                    ? <img src={post.cover_image} alt={post.cover_image_alt || post.title}
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                        loading="lazy" />
+                    : <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-soft)' }} />
+                  }
                 </div>
               </Link>
               <div className="card-body">
@@ -69,7 +63,7 @@ export default async function CategoryPage({ params }) {
                 </Link>
                 <p className="card-excerpt">{post.excerpt}</p>
                 <div className="card-meta">
-                  <span className="card-author">{post.author}</span>
+                  <span className="card-author">{post.author_name}</span>
                   <span className="card-dot">·</span>
                   <span>{formatDate(post.created_at)}</span>
                 </div>

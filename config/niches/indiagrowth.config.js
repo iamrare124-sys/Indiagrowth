@@ -1,6 +1,7 @@
 const indiaGrowthConfig = {
   niche: 'indiagrowth',
   siteName: 'IndiaGrowth',
+  // SITE_NAME env var must be set to 'indiagrowth' in Vercel — used by supabase.js to filter DB rows
   domain: 'indiagrowth.in',
   tagline: 'India Startup Funding & Entrepreneur News',
   description:
@@ -8,7 +9,7 @@ const indiaGrowthConfig = {
   author: {
     name: 'Ankit Mehta',
     title: 'Startup Ecosystem Expert | 8 Years Experience',
-    bio: 'Ankit Mehta has 8 years in India\'s startup ecosystem. Former analyst at Sequoia India, he tracks funding rounds, startup failures and success stories at StartupKhabar.in',
+    bio: "Ankit Mehta has 8 years in India's startup ecosystem. Former analyst at Sequoia India, he tracks funding rounds, startup failures and success stories at StartupKhabar.in",
   },
   primaryKeyword: 'india startup news',
   secondaryKeywords: [
